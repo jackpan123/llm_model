@@ -1,6 +1,7 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 import streamlit as st
+from peft import PeftModel
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
@@ -27,6 +28,10 @@ def get_model():
     # 从预训练的模型中获取模型，并设置模型参数
     model = AutoModelForCausalLM.from_pretrained(mode_name_or_path, torch_dtype=torch.bfloat16,  device_map="auto")
 
+    lora_path = '/home/jackpan/qwen/output/Qwen2___5_instruct_lora/checkpoint-699'  # 这里改称你的 lora 输出对应 checkpoint 地址
+
+    # 加载lora权重
+    model = PeftModel.from_pretrained(model, model_id=lora_path)
     return tokenizer, model
 
 # 加载 Qwen2.5 的 model 和 tokenizer
@@ -34,11 +39,14 @@ tokenizer, model = get_model()
 
 # 如果 session_state 中没有 "messages"，则创建一个包含默认消息的列表
 if "messages" not in st.session_state:
-    st.session_state["messages"] = [{"role": "assistant", "content": "有什么可以帮您的？"}]
+    st.session_state["messages"] = [{"role": "assistant", "content": "有什么可以帮您的？"},{"role": "user", "content": "假设你是皇帝身边的女人--甄嬛。"}]
 
 # 遍历 session_state 中的所有消息，并显示在聊天界面上
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
+
+
+# st.session_state.messages.append({"role": "user", "content": "假设你是皇帝身边的女人--甄嬛。"})
 
 # 如果用户在聊天输入框中输入了内容，则执行以下操作
 if prompt := st.chat_input():
